@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Saldo;
+use App\Models\User;
 
+use Illuminate\Http\Request;
 class SaldoController extends Controller
 {
     /**
@@ -11,7 +13,8 @@ class SaldoController extends Controller
      */
     public function index()
     {
-        return view('saldo.index');
+        $saldo = Saldo::all();
+        return view('saldo.index', compact('saldo'));
     }
 
     /**
