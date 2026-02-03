@@ -23,7 +23,7 @@ class SaldoController extends Controller
     public function create()
     {
         return view('saldo.create');
-        
+
     }
 
     /**
@@ -31,7 +31,12 @@ class SaldoController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $saldo          = new saldo();
+        $saldo->nama_e_wallet = $request->nama_e_wallet;
+        $saldo->total           = $request->total;
+
+        $saldo->save();
+        return redirect()->route('saldo.index');
     }
 
     /**
