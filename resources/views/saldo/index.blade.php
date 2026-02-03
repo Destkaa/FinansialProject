@@ -85,7 +85,9 @@
 
             <div class="container-xxl flex-grow-1 container-p-y">
               <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Tables /</span> Data Saldo</h4>
-
+              <a href="{{ route('saldo.create') }}" class="btn btn-primary my-4">
+                <i class="bx bx-folder-plus"></i> Tambah Data
+              </a>
               <!-- Basic Bootstrap Table -->
               <div class="card">
                 <h5 class="card-header">Data Saldo</h5>
@@ -105,7 +107,7 @@
                     <tr>
                         <td>{{ $no++ }}</td>
                         <td>{{ $data->nama_e_wallet }}</td>
-                        <td>{{ $data->total }}</td>
+                      <td>{{ number_format($data->total, 0, ',', '.') }}</td>
                         <td>
                           <div class="dropdown">
                             <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">

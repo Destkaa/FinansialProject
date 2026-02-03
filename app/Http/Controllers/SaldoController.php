@@ -22,7 +22,8 @@ class SaldoController extends Controller
      */
     public function create()
     {
-        //
+        return view('saldo.create');
+        
     }
 
     /**
