@@ -29,15 +29,27 @@ class SaldoController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        $saldo                  = new saldo();
-        $saldo->nama_e_wallet   = $request->nama_e_wallet;
-        $saldo->total           = $request->total;
+   public function store(Request $request)
+{
+    // 1. Validasi: Jika gagal, Laravel otomatis kembali ke halaman sebelumnya
+    $request->validate([
+        'nama_e_wallet' => 'required|min:3', // Wajib diisi, minimal 3 karakter
+        'total' => 'required|numeric|min:0', // Wajib diisi, harus angka, minimal 0
+    ], [
+        // Custom pesan error (Opsional)
+        'nama_e_wallet.required' => 'Nama E-Wallet harus diisi bos!',
+        'total.required' => 'Total saldo tidak boleh kosong!',
+        'total.numeric' => 'Isi pakai angka saja ya.',
+    ]);
 
-        $saldo->save();
-        return redirect()->route('saldo.index');
-    }
+    // 2. Jika lolos validasi, baru simpan
+    $saldo = new Saldo();
+    $saldo->nama_e_wallet = $request->nama_e_wallet;
+    $saldo->total = $request->total;
+    $saldo->save();
+
+    return redirect()->route('saldo.index')->with('success', 'Data berhasil ditambah!');
+}
 
     /**
      * Display the specified resource.
