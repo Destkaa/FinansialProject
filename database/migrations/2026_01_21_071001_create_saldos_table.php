@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('saldos', function (Blueprint $table) {
             $table->id();
             $table->string('nama_e_wallet');
-            $table->decimal('total', 15, 2)->default(0);
+            $table->integer('total');
             $table->timestamps();
         });
     }

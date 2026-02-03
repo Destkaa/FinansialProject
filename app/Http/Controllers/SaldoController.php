@@ -31,8 +31,8 @@ class SaldoController extends Controller
      */
     public function store(Request $request)
     {
-        $saldo          = new saldo();
-        $saldo->nama_e_wallet = $request->nama_e_wallet;
+        $saldo                  = new saldo();
+        $saldo->nama_e_wallet   = $request->nama_e_wallet;
         $saldo->total           = $request->total;
 
         $saldo->save();
@@ -44,15 +44,20 @@ class SaldoController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $saldo = \App\Models\Saldo::findOrFail($id);
+
+        return view('saldo.show', compact('saldo'));
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+  public function edit(string $id)
     {
-        //
+    $saldo = Saldo::findOrFail($id);
+
+    return view('saldo.edit', compact('saldo'));
+
     }
 
     /**
@@ -60,7 +65,23 @@ class SaldoController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $request->validate([
+            'nama_e_wallet' => 'required',
+            'total'         => 'required|numeric',
+        ]);
+
+        // 2. Cari data berdasarkan ID
+        $saldo = Saldo::findOrFail($id);
+
+        // 3. Update data
+        $saldo->nama_e_wallet = $request->nama_e_wallet;
+        $saldo->total         = $request->total;
+        
+        // 4. Simpan ke database
+        $saldo->save();
+
+        // 5. Redirect kembali ke halaman index dengan pesan sukses
+        return redirect()->route('saldo.index')->with('success', 'Data berhasil diperbarui!');
     }
 
     /**
@@ -68,6 +89,9 @@ class SaldoController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $saldo = Saldo::findOrFail($id);
+    $saldo->delete();
+
+    return redirect()->route('saldo.index')->with('success', 'Data berhasil dihapus!');
     }
 }
