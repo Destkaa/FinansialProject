@@ -39,7 +39,7 @@
                         <div class="col-sm-10">
                           <div class="input-group input-group-merge">
                             <span class="input-group-text"><i class="bx bx-money text-danger"></i></span>
-                            <input type="text" class="form-control bg-light text-danger fw-bold" value="- Rp {{ number_format($uangkeluar->nominal, 0, ',', '.') }}" readonly />
+                            <input type="text" class="form-control bg-light text-danger fw-bold" value=" Rp {{ number_format($uangkeluar->nominal, 0, ',', '.') }}" readonly />
                           </div>
                         </div>
                       </div>

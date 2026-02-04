@@ -62,16 +62,23 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                <div class="dropdown">
+                                               <div class="dropdown">
                                                     <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
                                                         <i class="bx bx-dots-vertical-rounded"></i>
                                                     </button>
                                                     <div class="dropdown-menu">
-                                                        <a class="dropdown-item" href="{{ route('uangkeluar.edit', $data->id) }}"><i class="bx bx-edit-alt me-1"></i> Edit</a>
-                                                        <form action="{{ route('uangkeluar.destroy', $data->id) }}" method="POST" onsubmit="return confirm('Hapus pengeluaran ini?')">
+                                                        <a class="dropdown-item" href="{{ route('uangkeluar.edit', $data->id) }}">
+                                                            <i class="bx bx-edit-alt me-1"></i> Edit
+                                                        </a>
+                                                        <a class="dropdown-item" href="{{ route('uangkeluar.show', $data->id) }}">
+                                                            <i class="bx bx-show me-1"></i> Show
+                                                        </a>
+                                                        <form action="{{ route('uangkeluar.destroy', $data->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
                                                             @csrf
                                                             @method('DELETE')
-                                                            <button type="submit" class="dropdown-item"><i class="bx bx-trash me-1"></i> Delete</button>
+                                                            <button type="submit" class="dropdown-item">
+                                                                <i class="bx bx-trash me-1"></i> Delete
+                                                            </button>
                                                         </form>
                                                     </div>
                                                 </div>

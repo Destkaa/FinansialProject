@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-    <title>Edit Uang Masuk | Sneat</title>
+    <title>Edit Uang Keluar | Sneat</title>
     <link rel="stylesheet" href="{{ asset('assets/vendor/fonts/boxicons.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/core.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/theme-default.css') }}" />
@@ -20,11 +20,11 @@
                 @include('layouts.components.navbar')
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y">
-                        <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Transaksi /</span> Edit Uang Masuk</h4>
+                        <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Transaksi /</span> Edit Uang Keluar</h4>
 
                         <div class="card mb-4">
                             <div class="card-body">
-                                <form action="{{ route('uangmasuk.update', $uangmasuk->id) }}" method="POST">
+                                <form action="{{ route('uangkeluar.update', $uangkeluar->id) }}" method="POST">
                                     @csrf
                                     @method('PUT')
 
@@ -33,8 +33,8 @@
                                         <div class="col-sm-10">
                                             <div class="input-group input-group-merge">
                                                 <span class="input-group-text"><i class="bx bx-money"></i></span>
-                                                <input type="text" class="form-control" id="nominal_input" value="Rp {{ number_format($uangmasuk->nominal, 0, ',', '.') }}" required />
-                                                <input type="hidden" name="nominal" id="nominal_asli" value="{{ $uangmasuk->nominal }}">
+                                                <input type="text" class="form-control" id="nominal_input" value="Rp {{ number_format($uangkeluar->nominal, 0, ',', '.') }}" required />
+                                                <input type="hidden" name="nominal" id="nominal_asli" value="{{ $uangkeluar->nominal }}">
                                             </div>
                                         </div>
                                     </div>
@@ -46,8 +46,8 @@
                                                 <span class="input-group-text"><i class="bx bx-wallet"></i></span>
                                                 <select name="id_saldo" class="form-select" required>
                                                     @foreach($saldo as $s)
-                                                        <option value="{{ $s->id }}" {{ $uangmasuk->id_saldo == $s->id ? 'selected' : '' }}>
-                                                            {{ $s->nama_e_wallet }}
+                                                        <option value="{{ $s->id }}" {{ $uangkeluar->id_saldo == $s->id ? 'selected' : '' }}>
+                                                            {{ $s->nama_e_wallet }} (Tersedia: Rp {{ number_format($s->total, 0, ',', '.') }})
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -58,21 +58,21 @@
                                     <div class="row mb-3">
                                         <label class="col-sm-2 col-form-label">Keterangan</label>
                                         <div class="col-sm-10">
-                                            <textarea name="keterangan" class="form-control" required>{{ $uangmasuk->keterangan }}</textarea>
+                                            <textarea name="keterangan" class="form-control" required>{{ $uangkeluar->keterangan }}</textarea>
                                         </div>
                                     </div>
 
                                     <div class="row mb-3">
                                         <label class="col-sm-2 col-form-label">Tanggal</label>
                                         <div class="col-sm-10">
-                                            <input type="date" name="tanggal_uang_masuk" class="form-control" value="{{ $uangmasuk->tanggal_uang_masuk }}" required />
+                                            <input type="date" name="tanggal_uang_keluar" class="form-control" value="{{ $uangkeluar->tanggal_uang_keluar }}" required />
                                         </div>
                                     </div>
 
                                     <div class="row justify-content-end">
                                         <div class="col-sm-10">
-                                            <button type="submit" class="btn btn-primary">Update Data</button>
-                                            <a href="{{ route('uangmasuk.index') }}" class="btn btn-outline-secondary">Batal</a>
+                                            <button type="submit" class="btn btn-warning">Perbarui Data</button>
+                                            <a href="{{ route('uangkeluar.index') }}" class="btn btn-outline-secondary">Batal</a>
                                         </div>
                                     </div>
                                 </form>
