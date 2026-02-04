@@ -61,10 +61,10 @@
                                             <div class="input-group input-group-merge">
                                                 <span class="input-group-text"><i class="bx bx-wallet"></i></span>
                                                 <select name="id_saldo" id="id_saldo" class="form-select @error('id_saldo') is-invalid @enderror" required>
-                                                    <option value="" selected disabled>-- Pilih Akun Saldo --</option>
+                                                    <option value="" selected disabled>Pilih Akun Saldo</option>
                                                     @foreach($saldo as $item)
                                                         <option value="{{ $item->id }}" {{ old('id_saldo') == $item->id ? 'selected' : '' }}>
-                                                            {{ $item->nama_e_wallet }} — (Rp {{ number_format($item->jumlah_saldo, 0, ',', '.') }})
+                                                            {{ $item->nama_e_wallet }}
                                                         </option>
                                                     @endforeach
                                                 </select>

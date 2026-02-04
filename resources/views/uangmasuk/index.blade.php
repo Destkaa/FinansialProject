@@ -40,12 +40,12 @@
 
                         <div class="mb-4">
                             <a href="{{ route('uangmasuk.create') }}" class="btn btn-primary">
-                                <i class="bx bx-plus me-1"></i> Tambah Data 
+                                <i class="bx bx-folder-plus me-1"></i> Tambah Data 
                             </a>
                         </div>
 
                         <div class="card">
-                            <h5 class="card-header">Riwayat Transaksi Masuk</h5>
+                            <h5 class="card-header">Data Uang Masuk</h5>
                             <div class="table-responsive text-nowrap">
                                 <table class="table table-hover">
                                     <thead>
