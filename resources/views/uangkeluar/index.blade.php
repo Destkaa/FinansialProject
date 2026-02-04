@@ -31,7 +31,7 @@
 
                         <div class="mb-4">
                             <a href="{{ route('uangkeluar.create') }}" class="btn btn-danger">
-                                <i class="bx bx-minus-circle me-1"></i> Tambah Pengeluaran 
+                                <i class="bx bx-folder-minus me-1"></i> Tambah Pengeluaran 
                             </a>
                         </div>
 
