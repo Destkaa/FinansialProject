@@ -81,34 +81,41 @@
   <div class="menu-inner-shadow"></div>
 
   <ul class="menu-inner py-1">
-    <li class="menu-item {{ request()->routeIs('home') ? 'active' : '' }}">
-      <a href="{{ route('home') }}" class="menu-link">
-        <i class="menu-icon tf-icons bx bx-home-circle"></i>
-        <div data-i18n="Analytics">Dashboard</div>
-      </a>
-    </li>
+  <li class="menu-item {{ request()->routeIs('home') ? 'active' : '' }}">
+    <a href="{{ route('home') }}" class="menu-link">
+      <i class="menu-icon tf-icons bx bx-home-circle"></i>
+      <div data-i18n="Analytics">Dashboard</div>
+    </a>
+  </li>
 
-    <li class="menu-header small text-uppercase">
-      <span class="menu-header-text">Transaksi & Keuangan</span>
-    </li>
+  <li class="menu-header small text-uppercase">
+    <span class="menu-header-text">Transaksi & Keuangan</span>
+  </li>
 
-    <li class="menu-item {{ request()->routeIs('saldo.*') || request()->routeIs('uangmasuk.*') ? 'active open' : '' }}">
-      <a href="javascript:void(0);" class="menu-link menu-toggle">
-        <i class="menu-icon tf-icons bx bx-table"></i>
-        <div data-i18n="Tables">Tables Data</div>
-      </a>
-      <ul class="menu-sub">
-        <li class="menu-item {{ request()->routeIs('saldo.*') ? 'active' : '' }}">
-          <a href="{{ route('saldo.index') }}" class="menu-link">
-            <div data-i18n="Data Saldo">Data Saldo</div>
-          </a>
-        </li>
-        <li class="menu-item {{ request()->routeIs('uangmasuk.*') ? 'active' : '' }}">
-          <a href="{{ route('uangmasuk.index') }}" class="menu-link">
-            <div data-i18n="Uang Masuk">Uang Masuk</div>
-          </a>
-        </li>
-      </ul>
-    </li>
-  </ul>
+  <li class="menu-item {{ request()->routeIs('saldo.*') || request()->routeIs('uangmasuk.*') || request()->routeIs('uangkeluar.*') ? 'active open' : '' }}">
+    <a href="javascript:void(0);" class="menu-link menu-toggle">
+      <i class="menu-icon tf-icons bx bx-table"></i>
+      <div data-i18n="Tables">Tables Data</div>
+    </a>
+    <ul class="menu-sub">
+      <li class="menu-item {{ request()->routeIs('saldo.*') ? 'active' : '' }}">
+        <a href="{{ route('saldo.index') }}" class="menu-link">
+          <div data-i18n="Data Saldo">Data Saldo</div>
+        </a>
+      </li>
+      
+      <li class="menu-item {{ request()->routeIs('uangmasuk.*') ? 'active' : '' }}">
+        <a href="{{ route('uangmasuk.index') }}" class="menu-link">
+          <div data-i18n="Uang Masuk">Uang Masuk</div>
+        </a>
+      </li>
+
+      <li class="menu-item {{ request()->routeIs('uangkeluar.*') ? 'active' : '' }}">
+        <a href="{{ route('uangkeluar.index') }}" class="menu-link">
+          <div data-i18n="Uang Keluar">Uang Keluar</div>
+        </a>
+      </li>
+    </ul>
+  </li>
+</ul>
 </aside>
