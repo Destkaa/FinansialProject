@@ -1,34 +1,90 @@
 <style>
-  /* Efek saat kursor di atas menu (Hover) */
+  /* Sidebar Container - Lebih Bersih & Terang */
+  .layout-menu {
+    background: #ffffff !important;
+    border-right: 1px solid #f0f0f2 !important;
+  }
+
+  /* Reset default border/shadow Sneat */
+  .menu-vertical, .menu-item .menu-link {
+    box-shadow: none !important;
+  }
+
+  /* Dasar Menu Item */
   .menu-item .menu-link {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 4px 12px;
+    border-radius: 10px !important;
+    /* Transisi ultra smooth menggunakan cubic-bezier */
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    color: #566a7f;
   }
 
+  /* Efek Hover - Soft Fade */
   .menu-item:not(.active) .menu-link:hover {
-    padding-left: 1.5rem !important; /* Menu sedikit masuk ke kanan */
-    background-color: rgba(105, 108, 255, 0.06) !important;
+    background-color: #f8f9ff !important;
+    color: #696cff !important;
+    /* Pergerakan sangat tipis agar terasa premium */
+    padding-left: 1.2rem !important;
   }
 
-  /* Efek saat icon di-hover */
+  /* Efek Icon saat Hover - Hanya membesar sedikit */
   .menu-item:hover .menu-icon {
-    animation: iconBounce 0.5s ease-in-out;
     color: #696cff;
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
   }
 
-  @keyframes iconBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+  /* Menu Aktif - Soft Glow, Bukan Neon Tajam */
+  .menu-item.active > .menu-link {
+    background-color: rgba(105, 108, 255, 0.08) !important;
+    color: #696cff !important;
+    font-weight: 600;
   }
 
-  /* Efek 'Click' (Feedback saat dipencet) */
+  /* Indikator Aktif - Pill Shape di sisi kiri */
+  .menu-item.active > .menu-link::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 4px;
+    height: 16px;
+    background: #696cff;
+    border-radius: 10px;
+    /* Muncul perlahan dari transparansi */
+    animation: fadeInSlide 0.5s ease forwards;
+  }
+
+  @keyframes fadeInSlide {
+    from { opacity: 0; transform: translateX(-5px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Sub-menu styling - Lebih Rapi */
+  .menu-sub .menu-link {
+    padding-left: 2.5rem !important;
+    font-size: 0.9rem;
+  }
+
+  /* Efek Sub-menu Aktif - Bullet point halus */
+  .menu-sub .menu-item.active .menu-link {
+    background: transparent !important;
+    color: #696cff !important;
+  }
+
+  .menu-sub .menu-item.active .menu-link::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background: #696cff;
+    border-radius: 50%;
+    margin-left: auto;
+    box-shadow: 0 0 8px rgba(105, 108, 255, 0.5);
+  }
+
+  /* Feedback Klik - Redaman lembut */
   .menu-link:active {
-    transform: scale(0.96); /* Mengecil seperti tombol ditekan */
-    transition: 0.1s;
-  }
-
-  /* Indikator halus pada menu yang aktif */
-  .menu-item.active .menu-link {
-    box-shadow: 0 4px 8px rgba(105, 108, 255, 0.2);
+    transform: scale(0.98);
+    background-color: rgba(105, 108, 255, 0.15) !important;
   }
 </style>
 
