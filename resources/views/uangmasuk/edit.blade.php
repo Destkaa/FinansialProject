@@ -47,7 +47,7 @@
                                                 <select name="id_saldo" class="form-select" required>
                                                     @foreach($saldo as $s)
                                                         <option value="{{ $s->id }}" {{ $uangmasuk->id_saldo == $s->id ? 'selected' : '' }}>
-                                                            {{ $s->nama_e_wallet }} (Saldo: Rp {{ number_format($s->total, 0, ',', '.') }})
+                                                            {{ $s->nama_e_wallet }}
                                                         </option>
                                                     @endforeach
                                                 </select>
