@@ -11,14 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('uang_masuk', function (Blueprint $table) {
+        Schema::create('uang_masuks', function (Blueprint $table) {
             $table->id();
             $table->decimal('nominal', 15, 2);
             $table->string('keterangan');
             $table->date('tanggal_uang_masuk'); 
             
             // Menggunakan saldo_id (standar Laravel: nama_table_singuler_id)
-            $table->foreignId('saldo_id')->constrained('saldos')->onDelete('cascade');
+            $table->foreignId('id_saldo')->constrained('saldos')->onDelete('cascade');
             
             $table->timestamps();
         });
