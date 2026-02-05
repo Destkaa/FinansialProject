@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Saldo;
 use App\Models\User;
+use App\Exports\SaldoExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 use Illuminate\Http\Request;
 class SaldoController extends Controller
@@ -11,6 +13,11 @@ class SaldoController extends Controller
     /**
      * Display a listing of the resource.
      */
+        public function export_excel()
+    {
+        return Excel::download(new SaldoExport, 'data-saldo.xlsx');
+    }
+    
     public function index()
     {
         $saldo = Saldo::all();

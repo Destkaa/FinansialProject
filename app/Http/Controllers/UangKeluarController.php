@@ -5,10 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Saldo;
 use App\Models\UangKeluar;
 use Illuminate\Http\Request;
+use App\Exports\UangKeluarExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 
 class UangKeluarController extends Controller
 {
+
+    public function export_excel() {
+        return Excel::download(new UangKeluarExport, 'uang-keluar.xlsx');
+    }
+
     /**
      * Menampilkan daftar transaksi uang keluar.
      */

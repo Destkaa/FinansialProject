@@ -33,6 +33,9 @@
                             <a href="{{ route('uangkeluar.create') }}" class="btn btn-danger">
                                 <i class="bx bx-folder-minus me-1"></i> Tambah Pengeluaran 
                             </a>
+                        <a href="{{ route('uangkeluar.export_excel') }}" class="btn btn-success my-4">
+                            <i class="bx bx-file"></i> Export Excel
+                        </a>
                         </div>
 
                         <div class="card">

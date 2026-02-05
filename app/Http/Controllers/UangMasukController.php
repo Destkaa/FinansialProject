@@ -4,10 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Saldo;
 use App\Models\UangMasuk;
+use App\Exports\UangMasukExport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 
 class UangMasukController extends Controller
 {
+
+    public function export_excel() {
+        return Excel::download(new UangMasukExport, 'uang-masuk.xlsx');
+    }
+
     public function index()
     {
         $uangmasuk = UangMasuk::with('saldo')->latest()->get();

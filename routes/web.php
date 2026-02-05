@@ -8,6 +8,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// --- TARUH DI SINI (DI ATAS RESOURCE) ---
+// Export Routes
+Route::get('saldo/export-excel', [SaldoController::class, 'export_excel'])->name('saldo.export_excel');
+Route::get('uangmasuk/export-excel', [UangMasukController::class, 'export_excel'])->name('uangmasuk.export_excel');
+Route::get('uangkeluar/export-excel', [UangKeluarController::class, 'export_excel'])->name('uangkeluar.export_excel');
+
+// Resource Routes
 Route::resource('saldo', SaldoController::class);
 Route::resource('uangmasuk', UangMasukController::class);
 Route::resource('uangkeluar', UangKeluarController::class);
