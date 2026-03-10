@@ -42,9 +42,9 @@
                             <a href="{{ route('uangmasuk.create') }}" class="btn btn-primary">
                                 <i class="bx bx-folder-plus me-1"></i> Tambah Data 
                             </a>
-                            <a href="{{ route('uangmasuk.export_excel') }}" class="btn btn-success my-4">
-                                <i class="bx bx-file"></i> Export Excel
-                            </a>
+                            <a href="{{ route('export.uangmasuk') }}" class="btn btn-outline-success my-4">
+                            <i class="bx bx-spreadsheet me-1"></i> Export Excel
+                        </a>
                         </div>
 
                         <div class="card">

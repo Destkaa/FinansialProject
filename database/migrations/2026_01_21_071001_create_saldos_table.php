@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('saldos', function (Blueprint $table) {
             $table->id();
+            // Menghubungkan saldo ke user (Sangat Penting untuk Dashboard Admin)
+            $table->foreignId('id_user')->constrained('users')->onDelete('cascade');
             $table->string('nama_e_wallet');
-            $table->integer('total');
+            $table->bigInteger('total')->default(0);
             $table->timestamps();
         });
     }

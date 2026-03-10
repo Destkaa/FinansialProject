@@ -4,104 +4,165 @@ namespace App\Http\Controllers;
 
 use App\Models\Saldo;
 use App\Models\UangMasuk;
+use App\Models\ActivityLog; 
 use App\Exports\UangMasukExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class UangMasukController extends Controller
 {
-
     public function export_excel() {
         return Excel::download(new UangMasukExport, 'uang-masuk.xlsx');
     }
 
     public function index()
     {
-        $uangmasuk = UangMasuk::with('saldo')->latest()->get();
+        if (Auth::user()->role == 'admin') {
+            $uangmasuk = UangMasuk::with(['saldo', 'user'])->latest()->get();
+        } else {
+            $uangmasuk = UangMasuk::with('saldo')
+                ->where('id_user', Auth::id())
+                ->latest()
+                ->get();
+        }
+
         return view('uangmasuk.index', compact('uangmasuk'));
     }
 
     public function create()
     {
-        $saldo = Saldo::all();
+        $saldo = Saldo::where('id_user', Auth::id())->get();
         return view('uangmasuk.create', compact('saldo'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'id_saldo' => 'required|exists:saldos,id',
+            'id_saldo' => 'required',
             'nominal' => 'required|numeric',
             'keterangan' => 'required',
             'tanggal_uang_masuk' => 'required|date',
         ]);
 
-        $saldo = Saldo::findOrFail($request->id_saldo);
+        return DB::transaction(function () use ($request) {
+            $uangmasuk = UangMasuk::create([
+                'id_user'            => Auth::id(),
+                'id_saldo'           => $request->id_saldo,
+                'nominal'            => $request->nominal,
+                'keterangan'         => $request->keterangan,
+                'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
+            ]);
 
-        UangMasuk::create([
-            'id_saldo' => $request->id_saldo,
-            'nominal' => $request->nominal,
-            'keterangan' => $request->keterangan,
-            'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
-        ]);
+            $saldo = Saldo::findOrFail($request->id_saldo);
+            $saldo->increment('total', $request->nominal);
 
-        // Tambah ke saldo (Gunakan 'total')
-        $saldo->total += $request->nominal;
-        $saldo->save();
+            // Perbaikan: Ganti 'action' menjadi 'activity' sesuai migration kamu
+            ActivityLog::create([
+                'user_id'     => Auth::id(),
+                'activity'    => 'Tambah Pemasukan', 
+                'description' => Auth::user()->name . " mencatat pemasukan '" . $request->keterangan . "' sebesar Rp " . number_format($request->nominal, 0, ',', '.')
+            ]);
 
-        return redirect()->route('uangmasuk.index')->with('success', 'Data berhasil ditambah!');
+            return redirect()->route('uangmasuk.index')->with('success', 'Pemasukan berhasil dicatat!');
+        });
     }
 
     public function edit($id)
     {
         $uangmasuk = UangMasuk::findOrFail($id);
-        $saldo = Saldo::all(); // Agar dropdown muncul di edit
+        
+        if (Auth::user()->role != 'admin' && $uangmasuk->id_user != Auth::id()) {
+            abort(403, 'Anda tidak diizinkan mengubah data ini.');
+        }
+
+        $saldo = Saldo::where('id_user', Auth::id())->get(); 
         return view('uangmasuk.edit', compact('uangmasuk', 'saldo'));
     }
 
-        public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
-        $uangmasuk = UangMasuk::findOrFail($id);
-        
-        // Ambil nominal dari input hidden (nominal_asli) agar murni angka
-        $nominalBaru = $request->nominal; 
-
-        // 1. Kurangi saldo lama
-        $saldoLama = Saldo::findOrFail($uangmasuk->id_saldo);
-        $saldoLama->total -= $uangmasuk->nominal;
-        $saldoLama->save();
-
-        // 2. Update transaksi
-        $uangmasuk->update([
-            'id_saldo' => $request->id_saldo,
-            'nominal' => $nominalBaru,
-            'keterangan' => $request->keterangan,
-            'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
+        $request->validate([
+            'id_saldo' => 'required',
+            'nominal' => 'required|numeric',
+            'keterangan' => 'required',
+            'tanggal_uang_masuk' => 'required|date',
         ]);
 
-        // 3. Tambah ke saldo baru
-        $saldoBaru = Saldo::findOrFail($request->id_saldo);
-        $saldoBaru->total += $nominalBaru;
-        $saldoBaru->save();
+        return DB::transaction(function () use ($request, $id) {
+            $uangmasuk = UangMasuk::findOrFail($id);
+            
+            if (Auth::user()->role != 'admin' && $uangmasuk->id_user != Auth::id()) {
+                abort(403);
+            }
 
-        return redirect()->route('uangmasuk.index')->with('success', 'Berhasil! Saldo sekarang: Rp ' . number_format($saldoBaru->total, 0, ',', '.'));
+            $nominalLama = $uangmasuk->nominal;
+            $nominalBaru = $request->nominal; 
+
+            $saldoLama = Saldo::findOrFail($uangmasuk->id_saldo);
+            $saldoLama->decrement('total', $nominalLama);
+
+            $uangmasuk->update([
+                'id_saldo' => $request->id_saldo,
+                'nominal' => $nominalBaru,
+                'keterangan' => $request->keterangan,
+                'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
+            ]);
+
+            $saldoBaru = Saldo::findOrFail($request->id_saldo);
+            $saldoBaru->increment('total', $nominalBaru);
+
+            // Perbaikan: Ganti 'action' menjadi 'activity'
+            ActivityLog::create([
+                'user_id'     => Auth::id(),
+                'activity'    => 'Update Pemasukan',
+                'description' => Auth::user()->name . " mengubah data pemasukan ID #$id (Dari Rp " . number_format($nominalLama) . " menjadi Rp " . number_format($nominalBaru) . ")"
+            ]);
+
+            return redirect()->route('uangmasuk.index')->with('success', 'Berhasil update data!');
+        });
     }
+
     public function destroy($id)
     {
-        $uangmasuk = UangMasuk::findOrFail($id);
-        $saldo = Saldo::findOrFail($uangmasuk->id_saldo);
+        return DB::transaction(function () use ($id) {
+            $uangmasuk = UangMasuk::findOrFail($id);
+            
+            if (Auth::user()->role != 'admin') {
+                abort(403, 'Hanya Admin yang boleh menghapus data.');
+            }
 
-        // Kurangi saldo sebelum hapus (Pakai 'total')
-        $saldo->total -= $uangmasuk->nominal;
-        $saldo->save();
+            $saldo = Saldo::findOrFail($uangmasuk->id_saldo);
+            $saldo->decrement('total', $uangmasuk->nominal);
 
-        $uangmasuk->delete();
-        return redirect()->route('uangmasuk.index')->with('success', 'Data berhasil dihapus!');
+            $infoLog = [
+                'user' => $uangmasuk->user->name ?? 'User',
+                'nominal' => $uangmasuk->nominal,
+                'ket' => $uangmasuk->keterangan
+            ];
+
+            $uangmasuk->delete();
+
+            // Perbaikan: Ganti 'action' menjadi 'activity'
+            ActivityLog::create([
+                'user_id'     => Auth::id(),
+                'activity'    => 'Hapus Pemasukan',
+                'description' => "Admin menghapus pemasukan milik " . $infoLog['user'] . " sebesar Rp " . number_format($infoLog['nominal']) . " (" . $infoLog['ket'] . ")"
+            ]);
+
+            return redirect()->route('uangmasuk.index')->with('success', 'Data berhasil dihapus!');
+        });
     }
 
     public function show($id)
     {
-        $uangmasuk = UangMasuk::with('saldo')->findOrFail($id);
+        $uangmasuk = UangMasuk::with(['saldo', 'user'])->findOrFail($id);
+        
+        if (Auth::user()->role != 'admin' && $uangmasuk->id_user != Auth::id()) {
+            abort(403);
+        }
+
         return view('uangmasuk.show', compact('uangmasuk'));
     }
 }

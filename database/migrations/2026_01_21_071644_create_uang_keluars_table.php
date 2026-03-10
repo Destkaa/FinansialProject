@@ -13,16 +13,12 @@ public function up(): void
 {
     Schema::create('uang_keluars', function (Blueprint $table) {
         $table->id();
-        
-        $table->decimal('nominal', 15, 2);
-        $table->string('keterangan');
-        
-        // Diganti jadi tanggal_uang_keluar agar sesuai fungsinya
-        $table->date('tanggal_uang_keluar'); 
-        
-        // Disamakan jadi saldo_id agar konsisten dengan tabel uang_masuks
+        // Pastikan baris ini ada di sini
+        $table->foreignId('id_user')->constrained('users')->onDelete('cascade');
         $table->foreignId('id_saldo')->constrained('saldos')->onDelete('cascade');
-        
+        $table->integer('nominal');
+        $table->string('keterangan');
+        $table->date('tanggal_uang_keluar');
         $table->timestamps();
     });
 }

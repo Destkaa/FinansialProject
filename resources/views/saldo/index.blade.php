@@ -88,8 +88,8 @@
               <a href="{{ route('saldo.create') }}" class="btn btn-primary my-4">
                 <i class="bx bx-folder-plus"></i> Tambah Data
               </a>
-              <a href="{{ route('saldo.export_excel') }}" class="btn btn-success my-4">
-                <i class="bx bx-file"></i> Export Excel
+              <a href="{{ route('export.saldo') }}" class="btn btn-outline-success my-4">
+                <i class="bx bx-spreadsheet me-1"></i> Export Excel
               </a>
               <!-- Basic Bootstrap Table -->
               <div class="card">

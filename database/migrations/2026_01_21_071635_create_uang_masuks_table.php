@@ -6,30 +6,31 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::create('uang_masuks', function (Blueprint $table) {
-            $table->id();
-            $table->decimal('nominal', 15, 2);
-            $table->string('keterangan');
-            $table->date('tanggal_uang_masuk'); 
-            
-            // Menggunakan saldo_id (standar Laravel: nama_table_singuler_id)
-            $table->foreignId('id_saldo')->constrained('saldos')->onDelete('cascade');
-            
-            $table->timestamps();
-        });
-    }
+   // Di dalam file xxxx_create_uang_masuks_table.php
+public function up(): void
+{
+    Schema::create('uang_masuks', function (Blueprint $table) {
+        $table->id();
+        // Langsung buat di sini:
+        $table->foreignId('id_user')->constrained('users')->onDelete('cascade');
+        $table->foreignId('id_saldo')->constrained('saldos')->onDelete('cascade');
+        $table->integer('nominal');
+        $table->string('keterangan');
+        $table->date('tanggal_uang_masuk');
+        $table->timestamps();
+    });
+}
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        // Nama tabel harus sama dengan yang di fungsi up()
-        Schema::dropIfExists('uang_masuks');
+        Schema::table('uang_masuks', function (Blueprint $table) {
+            $table->dropForeign(['id_user']);
+            $table->dropColumn('id_user');
+        });
+
+        Schema::table('uang_keluars', function (Blueprint $table) {
+            $table->dropForeign(['id_user']);
+            $table->dropColumn('id_user');
+        });
     }
 };

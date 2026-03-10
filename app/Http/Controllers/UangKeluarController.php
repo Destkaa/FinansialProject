@@ -4,39 +4,39 @@ namespace App\Http\Controllers;
 
 use App\Models\Saldo;
 use App\Models\UangKeluar;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use App\Exports\UangKeluarExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class UangKeluarController extends Controller
 {
-
     public function export_excel() {
         return Excel::download(new UangKeluarExport, 'uang-keluar.xlsx');
     }
 
-    /**
-     * Menampilkan daftar transaksi uang keluar.
-     */
     public function index()
     {
-        $uangkeluar = UangKeluar::with('saldo')->latest()->get();
+        if (Auth::user()->role == 'admin') {
+            $uangkeluar = UangKeluar::with(['saldo', 'user'])->latest()->get();
+        } else {
+            $uangkeluar = UangKeluar::with('saldo')
+                ->where('id_user', Auth::id())
+                ->latest()
+                ->get();
+        }
+        
         return view('uangkeluar.index', compact('uangkeluar'));
     }
 
-    /**
-     * Menampilkan form tambah pengeluaran.
-     */
     public function create()
     {
-        $saldo = Saldo::all();
+        $saldo = Saldo::where('id_user', Auth::id())->get();
         return view('uangkeluar.create', compact('saldo'));
     }
 
-    /**
-     * Menyimpan data pengeluaran baru ke database.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -47,103 +47,146 @@ class UangKeluarController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
+            $uangkeluar = UangKeluar::create([
+                'id_user'             => Auth::id(),
+                'id_saldo'            => $request->id_saldo,
+                'nominal'             => $request->nominal,
+                'keterangan'          => $request->keterangan,
+                'tanggal_uang_keluar' => $request->tanggal_uang_keluar,
+            ]);
+
             $saldo = Saldo::findOrFail($request->id_saldo);
+            $saldo->decrement('total', $request->nominal);
 
-            // Cek apakah saldo cukup
-            if ($saldo->total < $request->nominal) {
-                return redirect()->back()->with('error', 'Saldo tidak mencukupi!')->withInput();
-            }
-
-            // Simpan transaksi
-            UangKeluar::create($request->all());
-
-            // Kurangi saldo
-            $saldo->total -= $request->nominal;
-            $saldo->save();
+            // SINKRONISASI: Ganti 'action' menjadi 'activity'
+            ActivityLog::create([
+                'user_id'     => Auth::id(),
+                'activity'    => 'Tambah Pengeluaran', 
+                'description' => Auth::user()->name . " mencatat pengeluaran '" . $request->keterangan . "' sebesar Rp " . number_format($request->nominal, 0, ',', '.')
+            ]);
 
             return redirect()->route('uangkeluar.index')->with('success', 'Pengeluaran berhasil dicatat!');
         });
     }
 
-    /**
-     * Menampilkan detail pengeluaran.
-     */
     public function show(string $id)
     {
-        $uangkeluar = UangKeluar::with('saldo')->findOrFail($id);
+        $uangkeluar = UangKeluar::with(['saldo', 'user'])->findOrFail($id);
+
+        if (Auth::user()->role != 'admin' && $uangkeluar->id_user != Auth::id()) {
+            abort(403);
+        }
+
         return view('uangkeluar.show', compact('uangkeluar'));
     }
 
-    /**
-     * Menampilkan form edit pengeluaran.
-     */
     public function edit(string $id)
     {
         $uangkeluar = UangKeluar::findOrFail($id);
-        $saldo = Saldo::all();
+        
+        if (Auth::user()->role != 'admin' && $uangkeluar->id_user != Auth::id()) {
+            abort(403, 'Anda tidak diizinkan mengubah data ini.');
+        }
+
+        $saldo = Saldo::where('id_user', Auth::id())->get();
         return view('uangkeluar.edit', compact('uangkeluar', 'saldo'));
     }
 
-    /**
-     * Memperbarui data pengeluaran dan menyesuaikan saldo.
-     */
-    public function update(Request $request, string $id)
+        public function update(Request $request, string $id)
     {
         $request->validate([
-            'id_saldo' => 'required',
-            'nominal' => 'required|numeric',
+            'id_saldo' => 'required|exists:saldos,id',
+            'nominal' => 'required|numeric|min:0',
             'keterangan' => 'required',
             'tanggal_uang_keluar' => 'required|date',
         ]);
 
-        return DB::transaction(function () use ($request, $id) {
-            $uangkeluar = UangKeluar::findOrFail($id);
-            $nominalBaru = $request->nominal;
+        try {
+            return DB::transaction(function () use ($request, $id) {
+                $uangkeluar = UangKeluar::findOrFail($id);
 
-            // 1. Kembalikan dulu saldo lama (karena ini pengeluaran, maka saldo bertambah kembali)
-            $saldoLama = Saldo::findOrFail($uangkeluar->id_saldo);
-            $saldoLama->total += $uangkeluar->nominal;
-            $saldoLama->save();
+                if (Auth::user()->role != 'admin' && $uangkeluar->id_user != Auth::id()) {
+                    abort(403);
+                }
 
-            // 2. Ambil saldo baru (bisa e-wallet yang sama atau berbeda)
-            $saldoBaru = Saldo::findOrFail($request->id_saldo);
+                $nominalLama = $uangkeluar->nominal;
+                $nominalBaru = $request->nominal;
 
-            // 3. Cek apakah saldo baru mencukupi setelah pengembalian saldo lama
-            if ($saldoBaru->total < $nominalBaru) {
-                // Batalkan transaksi secara manual atau throw error agar DB rollback
-                throw new \Exception('Saldo tidak mencukupi untuk memperbarui transaksi.');
-            }
+                // 1. Ambil data saldo lama & baru
+                $saldoLama = Saldo::findOrFail($uangkeluar->id_saldo);
+                $saldoBaru = Saldo::findOrFail($request->id_saldo);
 
-            // 4. Update data transaksi
-            $uangkeluar->update([
-                'id_saldo' => $request->id_saldo,
-                'nominal' => $nominalBaru,
-                'keterangan' => $request->keterangan,
-                'tanggal_uang_keluar' => $request->tanggal_uang_keluar,
-            ]);
+                // 2. Kembalikan saldo lama dulu secara virtual untuk pengecekan
+                $saldoLama->total += $nominalLama;
 
-            // 5. Potong saldo baru
-            $saldoBaru->total -= $nominalBaru;
-            $saldoBaru->save();
+                // 3. Logika Pengecekan: Jika saldo yang sama, atau saldo baru berbeda
+                // Kita cek apakah saldo mencukupi setelah ditambah nominal lama
+                if ($request->id_saldo == $uangkeluar->id_saldo) {
+                    if ($saldoLama->total < $nominalBaru) {
+                        return redirect()->back()->with('error', 'Saldo tidak mencukupi! Sisa saldo + kembalian transaksi ini: Rp ' . number_format($saldoLama->total))->withInput();
+                    }
+                    // Update saldo yang sama
+                    $saldoLama->total -= $nominalBaru;
+                    $saldoLama->save();
+                } else {
+                    // Jika ganti akun saldo
+                    if ($saldoBaru->total < $nominalBaru) {
+                        return redirect()->back()->with('error', 'Saldo di akun tujuan tidak mencukupi!')->withInput();
+                    }
+                    // Simpan perubahan di kedua akun saldo
+                    $saldoLama->save(); // Simpan pengembalian di akun lama
+                    $saldoBaru->decrement('total', $nominalBaru); // Potong di akun baru
+                }
 
-            return redirect()->route('uangkeluar.index')->with('success', 'Transaksi pengeluaran berhasil diperbarui!');
-        });
+                // 4. Update data transaksi
+                $uangkeluar->update([
+                    'id_saldo' => $request->id_saldo,
+                    'nominal' => $nominalBaru,
+                    'keterangan' => $request->keterangan,
+                    'tanggal_uang_keluar' => $request->tanggal_uang_keluar,
+                ]);
+
+                // 5. Activity Log
+                ActivityLog::create([
+                    'user_id'     => Auth::id(),
+                    'activity'    => 'Update Pengeluaran',
+                    'description' => Auth::user()->name . " mengubah data pengeluaran ID #$id (Rp " . number_format($nominalLama) . " -> Rp " . number_format($nominalBaru) . ")"
+                ]);
+
+                return redirect()->route('uangkeluar.index')->with('success', 'Transaksi pengeluaran berhasil diperbarui!');
+            });
+        } catch (\Exception $e) {
+            // Jika ada error tak terduga, tangkap dan tampilkan dengan manis
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+        }
     }
 
-    /**
-     * Menghapus data pengeluaran dan mengembalikan saldo.
-     */
     public function destroy($id)
     {
         return DB::transaction(function () use ($id) {
             $uangkeluar = UangKeluar::findOrFail($id);
-            $saldo = Saldo::findOrFail($uangkeluar->id_saldo);
 
-            // Kembalikan saldo karena pengeluaran dibatalkan/dihapus
-            $saldo->total += $uangkeluar->nominal;
-            $saldo->save();
+            if (Auth::user()->role != 'admin') {
+                abort(403, 'Hanya Admin yang boleh menghapus data pengeluaran.');
+            }
+
+            $saldo = Saldo::findOrFail($uangkeluar->id_saldo);
+            $saldo->increment('total', $uangkeluar->nominal);
+
+            $infoLog = [
+                'user' => $uangkeluar->user->name ?? 'User',
+                'nominal' => $uangkeluar->nominal,
+                'ket' => $uangkeluar->keterangan
+            ];
 
             $uangkeluar->delete();
+
+            // SINKRONISASI: Ganti 'action' menjadi 'activity'
+            ActivityLog::create([
+                'user_id'     => Auth::id(),
+                'activity'    => 'Hapus Pengeluaran',
+                'description' => "Admin menghapus pengeluaran milik " . $infoLog['user'] . " senilai Rp " . number_format($infoLog['nominal']) . " (" . $infoLog['ket'] . ")"
+            ]);
 
             return redirect()->route('uangkeluar.index')->with('success', 'Data dihapus, saldo telah dikembalikan!');
         });
