@@ -10,10 +10,12 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class UangMasukController extends Controller
 {
-    public function export_excel() {
+    public function export_excel() 
+    {
         return Excel::download(new UangMasukExport, 'uang-masuk.xlsx');
     }
 
@@ -47,18 +49,22 @@ class UangMasukController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
+            // LOGIKA JAM: Menggabungkan tanggal pilihan user dengan waktu detik ini
+            $waktuSekarang = now()->format('H:i:s');
+            $tanggalWaktuLengkap = $request->tanggal_uang_masuk . ' ' . $waktuSekarang;
+
             $uangmasuk = UangMasuk::create([
                 'id_user'            => Auth::id(),
                 'id_saldo'           => $request->id_saldo,
                 'nominal'            => $request->nominal,
                 'keterangan'         => $request->keterangan,
                 'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
+                'created_at'         => $tanggalWaktuLengkap, // Menyimpan jam asli ke database
             ]);
 
             $saldo = Saldo::findOrFail($request->id_saldo);
             $saldo->increment('total', $request->nominal);
 
-            // Perbaikan: Ganti 'action' menjadi 'activity' sesuai migration kamu
             ActivityLog::create([
                 'user_id'     => Auth::id(),
                 'activity'    => 'Tambah Pemasukan', 
@@ -100,24 +106,30 @@ class UangMasukController extends Controller
             $nominalLama = $uangmasuk->nominal;
             $nominalBaru = $request->nominal; 
 
+            // Kembalikan saldo sebelum diupdate
             $saldoLama = Saldo::findOrFail($uangmasuk->id_saldo);
             $saldoLama->decrement('total', $nominalLama);
+
+            // LOGIKA JAM: Pertahankan jam menit detik lama agar data tidak reset ke 00:00
+            $jamLama = Carbon::parse($uangmasuk->created_at)->format('H:i:s');
+            $tanggalWaktuBaru = $request->tanggal_uang_masuk . ' ' . $jamLama;
 
             $uangmasuk->update([
                 'id_saldo' => $request->id_saldo,
                 'nominal' => $nominalBaru,
                 'keterangan' => $request->keterangan,
                 'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
+                'created_at' => $tanggalWaktuBaru,
             ]);
 
+            // Update ke saldo yang (mungkin) baru dipilih
             $saldoBaru = Saldo::findOrFail($request->id_saldo);
             $saldoBaru->increment('total', $nominalBaru);
 
-            // Perbaikan: Ganti 'action' menjadi 'activity'
             ActivityLog::create([
                 'user_id'     => Auth::id(),
                 'activity'    => 'Update Pemasukan',
-                'description' => Auth::user()->name . " mengubah data pemasukan ID #$id (Dari Rp " . number_format($nominalLama) . " menjadi Rp " . number_format($nominalBaru) . ")"
+                'description' => Auth::user()->name . " mengubah data pemasukan ID #$id (Rp " . number_format($nominalLama) . " -> Rp " . number_format($nominalBaru) . ")"
             ]);
 
             return redirect()->route('uangmasuk.index')->with('success', 'Berhasil update data!');
@@ -144,7 +156,6 @@ class UangMasukController extends Controller
 
             $uangmasuk->delete();
 
-            // Perbaikan: Ganti 'action' menjadi 'activity'
             ActivityLog::create([
                 'user_id'     => Auth::id(),
                 'activity'    => 'Hapus Pemasukan',

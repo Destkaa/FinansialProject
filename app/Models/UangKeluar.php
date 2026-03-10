@@ -3,34 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class UangKeluar extends Model
 {
     protected $table = 'uang_keluars';
 
-    protected $fillable = ['id_user','id_saldo', 'nominal', 'keterangan', 'tanggal_uang_keluar'];
+    protected $fillable = [
+        'id_user', 
+        'id_saldo', 
+        'nominal', 
+        'keterangan', 
+        'tanggal_uang_keluar', 
+        'created_at' // Penting: agar jam bisa diisi manual
+    ];
 
-    /**
-     * Relasi ke Saldo
-     */
-    public function saldo()
-    {
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
+    public function saldo() {
         return $this->belongsTo(Saldo::class, 'id_saldo');
     }
 
-    /**
-     * Relasi ke User (Lewat Saldo)
-     * Ini sangat penting agar $item->user->name di Dashboard Admin tidak error
-     */
-    public function user()
-    {
-        return $this->hasOneThrough(
-            User::class, 
-            Saldo::class, 
-            'id',       // Foreign key di tabel saldos (id)
-            'id',       // Foreign key di tabel users (id)
-            'id_saldo', // Local key di tabel uang_keluars
-            'id_user'   // Local key di tabel saldos
-        );
+    public function user() {
+        return $this->hasOneThrough(User::class, Saldo::class, 'id', 'id', 'id_saldo', 'id_user');
     }
 }

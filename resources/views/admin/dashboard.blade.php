@@ -102,21 +102,71 @@
                                     <tbody class="table-border-bottom-0">
                                         @forelse($transactions as $item)
                                         <tr>
-                                            <td><span class="fw-bold">{{ $item->user->name ?? 'System' }}</span></td>
                                             <td>
-                                                <span class="badge bg-label-{{ $item->tipe == 'masuk' ? 'success' : 'danger' }}">
-                                                    {{ strtoupper($item->tipe) }}
+                                                <div class="d-flex align-items-center">
+                                                    {{-- Menampilkan Nama User --}}
+                                                    <div class="avatar avatar-xs me-2">
+                                                        <span class="avatar-initial rounded-circle bg-label-primary"><i class="bx bx-user"></i></span>
+                                                    </div>
+                                                    <div class="d-flex flex-column">
+                                                        <span class="fw-bold text-dark">{{ $item->user->name ?? 'User' }}</span>
+                                                        <small class="text-muted" style="font-size: 0.75rem;">ID: #{{ $item->id }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    {{-- Menampilkan Tanggal --}}
+                                                    <span class="text-dark">
+                                                        {{ $item->created_at ? $item->created_at->translatedFormat('d M Y') : \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d M Y') }}
+                                                    </span>
+                                                    {{-- Menampilkan Jam Aktif --}}
+                                                    <small class="text-muted">
+                                                        <i class="bx bx-time-five" style="font-size: 10px"></i> 
+                                                        @if($item->created_at)
+                                                            {{ $item->created_at->format('H:i') }} WIB
+                                                        @else
+                                                            <span class="text-warning">00:00</span>
+                                                        @endif
+                                                    </small>
+                                                </div>
+                                            </td>
+                                            <td><span class="fw-medium text-capitalize">{{ str_limit($item->keterangan, 30) }}</span></td>
+                                            <td>
+                                                <span class="badge bg-label-{{ $item->kategori == 'Pemasukan' ? 'success' : 'danger' }} rounded-pill">
+                                                    <i class="bx {{ $item->kategori == 'Pemasukan' ? 'bx-trending-up' : 'bx-trending-down' }} mb-1"></i>
+                                                    {{ $item->kategori }}
                                                 </span>
                                             </td>
-                                            <td class="{{ $item->tipe == 'masuk' ? 'text-success' : 'text-danger' }} fw-bold">
-                                                {{ $item->tipe == 'masuk' ? '+' : '-' }} Rp {{ number_format($item->nominal, 0, ',', '.') }}
+                                            <td class="{{ $item->kategori == 'Pemasukan' ? 'text-success' : 'text-danger' }} fw-bold">
+                                                {{ $item->kategori == 'Pemasukan' ? '+' : '-' }} Rp {{ number_format($item->nominal, 0, ',', '.') }}
                                             </td>
-                                            <td>{{ $item->keterangan }}</td>
-                                            <td>{{ $item->created_at->diffForHumans() }}</td>
+                                            <td>
+                                                <div class="dropdown">
+                                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                                    </button>
+                                                    <div class="dropdown-menu">
+                                                        {{-- Tombol Lihat Detail (Opsional) --}}
+                                                        <a class="dropdown-item" href="{{ $item->kategori == 'Pemasukan' ? route('uangmasuk.show', $item->id) : route('uangkeluar.show', $item->id) }}">
+                                                            <i class="bx bx-show-alt me-1"></i> View Detail
+                                                        </a>
+                                                        {{-- Tombol Hapus --}}
+                                                        <form action="{{ $item->kategori == 'Pemasukan' ? route('uangmasuk.destroy', $item->id) : route('uangkeluar.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="dropdown-item text-danger"><i class="bx bx-trash me-1"></i> Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </td>
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="5" class="text-center p-4 text-muted">Belum ada aktivitas transaksi di sistem.</td>
+                                            <td colspan="6" class="text-center p-5 text-muted">
+                                                <i class="bx bx-folder-open fs-1 d-block mb-2"></i>
+                                                Belum ada data transaksi dari seluruh user.
+                                            </td>
                                         </tr>
                                         @endforelse
                                     </tbody>

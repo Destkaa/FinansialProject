@@ -10,10 +10,12 @@ use App\Exports\UangKeluarExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class UangKeluarController extends Controller
 {
-    public function export_excel() {
+    public function export_excel() 
+    {
         return Excel::download(new UangKeluarExport, 'uang-keluar.xlsx');
     }
 
@@ -47,18 +49,23 @@ class UangKeluarController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
+            // LOGIKA JAM: Gabungkan tanggal dari input dengan jam menit detik saat ini
+            $tanggalInput = $request->tanggal_uang_keluar;
+            $waktuSekarang = now()->format('H:i:s');
+            $fullDateTime = $tanggalInput . ' ' . $waktuSekarang;
+
             $uangkeluar = UangKeluar::create([
                 'id_user'             => Auth::id(),
                 'id_saldo'            => $request->id_saldo,
                 'nominal'             => $request->nominal,
                 'keterangan'          => $request->keterangan,
                 'tanggal_uang_keluar' => $request->tanggal_uang_keluar,
+                'created_at'          => $fullDateTime, // Paksa isi created_at dengan jam aktif
             ]);
 
             $saldo = Saldo::findOrFail($request->id_saldo);
             $saldo->decrement('total', $request->nominal);
 
-            // SINKRONISASI: Ganti 'action' menjadi 'activity'
             ActivityLog::create([
                 'user_id'     => Auth::id(),
                 'activity'    => 'Tambah Pengeluaran', 
@@ -92,7 +99,7 @@ class UangKeluarController extends Controller
         return view('uangkeluar.edit', compact('uangkeluar', 'saldo'));
     }
 
-        public function update(Request $request, string $id)
+    public function update(Request $request, string $id)
     {
         $request->validate([
             'id_saldo' => 'required|exists:saldos,id',
@@ -112,51 +119,47 @@ class UangKeluarController extends Controller
                 $nominalLama = $uangkeluar->nominal;
                 $nominalBaru = $request->nominal;
 
-                // 1. Ambil data saldo lama & baru
+                // Ambil jam lama agar saat update tanggal, jam aslinya tidak berubah jadi 00:00
+                $jamLama = Carbon::parse($uangkeluar->created_at)->format('H:i:s');
+                $tanggalWaktuBaru = $request->tanggal_uang_keluar . ' ' . $jamLama;
+
                 $saldoLama = Saldo::findOrFail($uangkeluar->id_saldo);
                 $saldoBaru = Saldo::findOrFail($request->id_saldo);
 
-                // 2. Kembalikan saldo lama dulu secara virtual untuk pengecekan
+                // Revert saldo lama
                 $saldoLama->total += $nominalLama;
 
-                // 3. Logika Pengecekan: Jika saldo yang sama, atau saldo baru berbeda
-                // Kita cek apakah saldo mencukupi setelah ditambah nominal lama
                 if ($request->id_saldo == $uangkeluar->id_saldo) {
                     if ($saldoLama->total < $nominalBaru) {
-                        return redirect()->back()->with('error', 'Saldo tidak mencukupi! Sisa saldo + kembalian transaksi ini: Rp ' . number_format($saldoLama->total))->withInput();
+                        return redirect()->back()->with('error', 'Saldo tidak mencukupi!')->withInput();
                     }
-                    // Update saldo yang sama
                     $saldoLama->total -= $nominalBaru;
                     $saldoLama->save();
                 } else {
-                    // Jika ganti akun saldo
                     if ($saldoBaru->total < $nominalBaru) {
                         return redirect()->back()->with('error', 'Saldo di akun tujuan tidak mencukupi!')->withInput();
                     }
-                    // Simpan perubahan di kedua akun saldo
-                    $saldoLama->save(); // Simpan pengembalian di akun lama
-                    $saldoBaru->decrement('total', $nominalBaru); // Potong di akun baru
+                    $saldoLama->save(); 
+                    $saldoBaru->decrement('total', $nominalBaru);
                 }
 
-                // 4. Update data transaksi
                 $uangkeluar->update([
                     'id_saldo' => $request->id_saldo,
                     'nominal' => $nominalBaru,
                     'keterangan' => $request->keterangan,
                     'tanggal_uang_keluar' => $request->tanggal_uang_keluar,
+                    'created_at' => $tanggalWaktuBaru, // Tetap pertahankan jam lama
                 ]);
 
-                // 5. Activity Log
                 ActivityLog::create([
                     'user_id'     => Auth::id(),
                     'activity'    => 'Update Pengeluaran',
-                    'description' => Auth::user()->name . " mengubah data pengeluaran ID #$id (Rp " . number_format($nominalLama) . " -> Rp " . number_format($nominalBaru) . ")"
+                    'description' => Auth::user()->name . " mengubah data pengeluaran ID #$id"
                 ]);
 
-                return redirect()->route('uangkeluar.index')->with('success', 'Transaksi pengeluaran berhasil diperbarui!');
+                return redirect()->route('uangkeluar.index')->with('success', 'Transaksi berhasil diperbarui!');
             });
         } catch (\Exception $e) {
-            // Jika ada error tak terduga, tangkap dan tampilkan dengan manis
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
         }
     }
@@ -167,28 +170,21 @@ class UangKeluarController extends Controller
             $uangkeluar = UangKeluar::findOrFail($id);
 
             if (Auth::user()->role != 'admin') {
-                abort(403, 'Hanya Admin yang boleh menghapus data pengeluaran.');
+                abort(403, 'Hanya Admin yang boleh menghapus data.');
             }
 
             $saldo = Saldo::findOrFail($uangkeluar->id_saldo);
             $saldo->increment('total', $uangkeluar->nominal);
 
-            $infoLog = [
-                'user' => $uangkeluar->user->name ?? 'User',
-                'nominal' => $uangkeluar->nominal,
-                'ket' => $uangkeluar->keterangan
-            ];
-
             $uangkeluar->delete();
 
-            // SINKRONISASI: Ganti 'action' menjadi 'activity'
             ActivityLog::create([
                 'user_id'     => Auth::id(),
                 'activity'    => 'Hapus Pengeluaran',
-                'description' => "Admin menghapus pengeluaran milik " . $infoLog['user'] . " senilai Rp " . number_format($infoLog['nominal']) . " (" . $infoLog['ket'] . ")"
+                'description' => "Admin menghapus pengeluaran senilai Rp " . number_format($uangkeluar->nominal)
             ]);
 
-            return redirect()->route('uangkeluar.index')->with('success', 'Data dihapus, saldo telah dikembalikan!');
+            return redirect()->route('uangkeluar.index')->with('success', 'Data dihapus dan saldo dikembalikan!');
         });
     }
 }
