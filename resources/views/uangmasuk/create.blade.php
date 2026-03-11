@@ -42,13 +42,14 @@
                                             <div class="input-group input-group-merge">
                                                 <span class="input-group-text"><i class="bx bx-money"></i></span>
                                                 <input 
-                                                    type="number" 
+                                                    type="text" 
                                                     name="nominal" 
                                                     id="nominal" 
                                                     class="form-control @error('nominal') is-invalid @enderror" 
-                                                    placeholder="Masukkan nominal..." 
+                                                    placeholder="Masukkan nominal" 
                                                     value="{{ old('nominal') }}" 
                                                     required 
+                                                    autocomplete="off"
                                                 />
                                             </div>
                                             @error('nominal') <small class="text-danger">{{ $message }}</small> @enderror
@@ -105,7 +106,29 @@
 
     <script src="{{ asset('assets/vendor/libs/jquery/jquery.js') }}"></script>
     <script src="{{ asset('assets/vendor/js/bootstrap.js') }}"></script>
-    <script src="{{ asset('assets/vendor/js/menu.js') }}"></script>
-    <script src="{{ asset('assets/js/main.js') }}"></script>
+
+    <script>
+        var nominal = document.getElementById('nominal');
+        nominal.addEventListener('keyup', function(e) {
+            // tambahkan format ribuan saat diketik
+            nominal.value = formatRupiah(this.value);
+        });
+
+        function formatRupiah(angka, prefix) {
+            var number_string = angka.replace(/[^,\d]/g, '').toString(),
+                split = number_string.split(','),
+                sisa = split[0].length % 3,
+                rupiah = split[0].substr(0, sisa),
+                ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+            if (ribuan) {
+                separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+
+            rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+            return prefix == undefined ? rupiah : (rupiah ? 'Rp. ' + rupiah : '');
+        }
+    </script>
 </body>
 </html>

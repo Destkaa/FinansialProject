@@ -41,15 +41,22 @@ class UangMasukController extends Controller
 
     public function store(Request $request)
     {
+        // 1. Bersihkan titik dari nominal (Input Masking)
+        if ($request->has('nominal')) {
+            $nominalBersih = str_replace('.', '', $request->nominal);
+            $request->merge(['nominal' => $nominalBersih]);
+        }
+
+        // 2. Validasi
         $request->validate([
-            'id_saldo' => 'required',
-            'nominal' => 'required|numeric',
+            'id_saldo' => 'required|exists:saldos,id',
+            'nominal' => 'required|numeric|min:1',
             'keterangan' => 'required',
             'tanggal_uang_masuk' => 'required|date',
         ]);
 
         return DB::transaction(function () use ($request) {
-            // LOGIKA JAM: Menggabungkan tanggal pilihan user dengan waktu detik ini
+            // LOGIKA JAM: Gabungkan tanggal input dengan jam menit detik sekarang (WIB)
             $waktuSekarang = now()->format('H:i:s');
             $tanggalWaktuLengkap = $request->tanggal_uang_masuk . ' ' . $waktuSekarang;
 
@@ -59,16 +66,18 @@ class UangMasukController extends Controller
                 'nominal'            => $request->nominal,
                 'keterangan'         => $request->keterangan,
                 'tanggal_uang_masuk' => $request->tanggal_uang_masuk,
-                'created_at'         => $tanggalWaktuLengkap, // Menyimpan jam asli ke database
+                'created_at'         => $tanggalWaktuLengkap,
             ]);
 
             $saldo = Saldo::findOrFail($request->id_saldo);
             $saldo->increment('total', $request->nominal);
 
+            // LOG AKTIVITAS
             ActivityLog::create([
                 'user_id'     => Auth::id(),
-                'activity'    => 'Tambah Pemasukan', 
-                'description' => Auth::user()->name . " mencatat pemasukan '" . $request->keterangan . "' sebesar Rp " . number_format($request->nominal, 0, ',', '.')
+                'action'      => 'Tambah', 
+                'description' => Auth::user()->name . " mencatat pemasukan '" . $request->keterangan . "' sebesar Rp " . number_format($request->nominal, 0, ',', '.'),
+                'ip_address'  => $request->ip(),
             ]);
 
             return redirect()->route('uangmasuk.index')->with('success', 'Pemasukan berhasil dicatat!');
@@ -89,9 +98,15 @@ class UangMasukController extends Controller
 
     public function update(Request $request, $id)
     {
+        // 1. Bersihkan titik dari nominal
+        if ($request->has('nominal')) {
+            $nominalBersih = str_replace('.', '', $request->nominal);
+            $request->merge(['nominal' => $nominalBersih]);
+        }
+
         $request->validate([
-            'id_saldo' => 'required',
-            'nominal' => 'required|numeric',
+            'id_saldo' => 'required|exists:saldos,id',
+            'nominal' => 'required|numeric|min:1',
             'keterangan' => 'required',
             'tanggal_uang_masuk' => 'required|date',
         ]);
@@ -106,11 +121,11 @@ class UangMasukController extends Controller
             $nominalLama = $uangmasuk->nominal;
             $nominalBaru = $request->nominal; 
 
-            // Kembalikan saldo sebelum diupdate
+            // Kembalikan saldo lama (revert)
             $saldoLama = Saldo::findOrFail($uangmasuk->id_saldo);
             $saldoLama->decrement('total', $nominalLama);
 
-            // LOGIKA JAM: Pertahankan jam menit detik lama agar data tidak reset ke 00:00
+            // LOGIKA JAM: Pertahankan jam lama agar data historis tidak berubah ke jam 00:00:00
             $jamLama = Carbon::parse($uangmasuk->created_at)->format('H:i:s');
             $tanggalWaktuBaru = $request->tanggal_uang_masuk . ' ' . $jamLama;
 
@@ -122,14 +137,16 @@ class UangMasukController extends Controller
                 'created_at' => $tanggalWaktuBaru,
             ]);
 
-            // Update ke saldo yang (mungkin) baru dipilih
+            // Tambahkan ke saldo yang baru (jika user ganti akun e-wallet)
             $saldoBaru = Saldo::findOrFail($request->id_saldo);
             $saldoBaru->increment('total', $nominalBaru);
 
+            // LOG AKTIVITAS
             ActivityLog::create([
                 'user_id'     => Auth::id(),
-                'activity'    => 'Update Pemasukan',
-                'description' => Auth::user()->name . " mengubah data pemasukan ID #$id (Rp " . number_format($nominalLama) . " -> Rp " . number_format($nominalBaru) . ")"
+                'action'      => 'Update',
+                'description' => Auth::user()->name . " mengubah pemasukan ID #$id (Rp " . number_format($nominalLama) . " -> Rp " . number_format($nominalBaru) . ")",
+                'ip_address'  => $request->ip(),
             ]);
 
             return redirect()->route('uangmasuk.index')->with('success', 'Berhasil update data!');
@@ -139,7 +156,7 @@ class UangMasukController extends Controller
     public function destroy($id)
     {
         return DB::transaction(function () use ($id) {
-            $uangmasuk = UangMasuk::findOrFail($id);
+            $uangmasuk = UangMasuk::with('user')->findOrFail($id);
             
             if (Auth::user()->role != 'admin') {
                 abort(403, 'Hanya Admin yang boleh menghapus data.');
@@ -148,18 +165,17 @@ class UangMasukController extends Controller
             $saldo = Saldo::findOrFail($uangmasuk->id_saldo);
             $saldo->decrement('total', $uangmasuk->nominal);
 
-            $infoLog = [
-                'user' => $uangmasuk->user->name ?? 'User',
-                'nominal' => $uangmasuk->nominal,
-                'ket' => $uangmasuk->keterangan
-            ];
+            $infoNominal = $uangmasuk->nominal;
+            $infoOwner = $uangmasuk->user->name ?? 'User';
 
             $uangmasuk->delete();
 
+            // LOG AKTIVITAS
             ActivityLog::create([
                 'user_id'     => Auth::id(),
-                'activity'    => 'Hapus Pemasukan',
-                'description' => "Admin menghapus pemasukan milik " . $infoLog['user'] . " sebesar Rp " . number_format($infoLog['nominal']) . " (" . $infoLog['ket'] . ")"
+                'action'      => 'Hapus',
+                'description' => "Admin menghapus pemasukan milik " . $infoOwner . " sebesar Rp " . number_format($infoNominal),
+                'ip_address'  => $request->ip() ?? null,
             ]);
 
             return redirect()->route('uangmasuk.index')->with('success', 'Data berhasil dihapus!');
