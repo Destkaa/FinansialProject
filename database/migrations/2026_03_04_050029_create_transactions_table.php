@@ -10,6 +10,11 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            
+            // 1. Pastikan tabel 'users' sudah ada sebelum menjalankan ini
+            // 2. foreignId harus sesuai dengan tipe data id di tabel users (biasanya bigIncrements)
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); 
+            
             $table->date('tanggal');
             $table->string('keterangan');
             $table->enum('kategori', ['Pemasukan', 'Pengeluaran']);
@@ -18,6 +23,7 @@ return new class extends Migration
             $table->timestamps();
         });
     }
+
 
     public function down(): void
     {

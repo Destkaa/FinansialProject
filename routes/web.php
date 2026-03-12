@@ -52,5 +52,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Audit & History
         Route::get('/history', [HistoryController::class, 'index'])->name('history.index');
+        // --- TAMBAHKAN BARIS DI BAWAH INI ---
+        Route::delete('/history/clear', [HistoryController::class, 'clear'])->name('history.clear');
     });
 });

@@ -24,7 +24,7 @@ class UangMasukController extends Controller
         if (Auth::user()->role == 'admin') {
             $uangmasuk = UangMasuk::with(['saldo', 'user'])->latest()->get();
         } else {
-            $uangmasuk = UangMasuk::with('saldo')
+            $uangmasuk = UangMasuk::with(['saldo', 'user'])
                 ->where('id_user', Auth::id())
                 ->latest()
                 ->get();
@@ -41,13 +41,11 @@ class UangMasukController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Bersihkan titik dari nominal (Input Masking)
         if ($request->has('nominal')) {
             $nominalBersih = str_replace('.', '', $request->nominal);
             $request->merge(['nominal' => $nominalBersih]);
         }
 
-        // 2. Validasi
         $request->validate([
             'id_saldo' => 'required|exists:saldos,id',
             'nominal' => 'required|numeric|min:1',
@@ -56,11 +54,10 @@ class UangMasukController extends Controller
         ]);
 
         return DB::transaction(function () use ($request) {
-            // LOGIKA JAM: Gabungkan tanggal input dengan jam menit detik sekarang (WIB)
             $waktuSekarang = now()->format('H:i:s');
             $tanggalWaktuLengkap = $request->tanggal_uang_masuk . ' ' . $waktuSekarang;
 
-            $uangmasuk = UangMasuk::create([
+            UangMasuk::create([
                 'id_user'            => Auth::id(),
                 'id_saldo'           => $request->id_saldo,
                 'nominal'            => $request->nominal,
@@ -72,11 +69,11 @@ class UangMasukController extends Controller
             $saldo = Saldo::findOrFail($request->id_saldo);
             $saldo->increment('total', $request->nominal);
 
-            // LOG AKTIVITAS
+            // LOG: Nama dihapus agar mengikuti profil user terbaru
             ActivityLog::create([
                 'user_id'     => Auth::id(),
-                'action'      => 'Tambah', 
-                'description' => Auth::user()->name . " mencatat pemasukan '" . $request->keterangan . "' sebesar Rp " . number_format($request->nominal, 0, ',', '.'),
+                'activity'    => 'Tambah', 
+                'description' => "mencatat pemasukan '" . $request->keterangan . "' sebesar Rp " . number_format($request->nominal, 0, ',', '.'),
                 'ip_address'  => $request->ip(),
             ]);
 
@@ -98,7 +95,6 @@ class UangMasukController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 1. Bersihkan titik dari nominal
         if ($request->has('nominal')) {
             $nominalBersih = str_replace('.', '', $request->nominal);
             $request->merge(['nominal' => $nominalBersih]);
@@ -121,11 +117,9 @@ class UangMasukController extends Controller
             $nominalLama = $uangmasuk->nominal;
             $nominalBaru = $request->nominal; 
 
-            // Kembalikan saldo lama (revert)
             $saldoLama = Saldo::findOrFail($uangmasuk->id_saldo);
             $saldoLama->decrement('total', $nominalLama);
 
-            // LOGIKA JAM: Pertahankan jam lama agar data historis tidak berubah ke jam 00:00:00
             $jamLama = Carbon::parse($uangmasuk->created_at)->format('H:i:s');
             $tanggalWaktuBaru = $request->tanggal_uang_masuk . ' ' . $jamLama;
 
@@ -137,15 +131,14 @@ class UangMasukController extends Controller
                 'created_at' => $tanggalWaktuBaru,
             ]);
 
-            // Tambahkan ke saldo yang baru (jika user ganti akun e-wallet)
             $saldoBaru = Saldo::findOrFail($request->id_saldo);
             $saldoBaru->increment('total', $nominalBaru);
 
-            // LOG AKTIVITAS
+            // LOG: Nama dihapus
             ActivityLog::create([
                 'user_id'     => Auth::id(),
-                'action'      => 'Update',
-                'description' => Auth::user()->name . " mengubah pemasukan ID #$id (Rp " . number_format($nominalLama) . " -> Rp " . number_format($nominalBaru) . ")",
+                'activity'    => 'Update',
+                'description' => "mengubah data pemasukan (ID #$id)",
                 'ip_address'  => $request->ip(),
             ]);
 
@@ -153,43 +146,29 @@ class UangMasukController extends Controller
         });
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        return DB::transaction(function () use ($id) {
-            $uangmasuk = UangMasuk::with('user')->findOrFail($id);
+        return DB::transaction(function () use ($request, $id) {
+            $uangmasuk = UangMasuk::findOrFail($id);
             
-            if (Auth::user()->role != 'admin') {
-                abort(403, 'Hanya Admin yang boleh menghapus data.');
+            if (Auth::user()->role != 'admin' && $uangmasuk->id_user != Auth::id()) {
+                abort(403);
             }
 
             $saldo = Saldo::findOrFail($uangmasuk->id_saldo);
             $saldo->decrement('total', $uangmasuk->nominal);
 
-            $infoNominal = $uangmasuk->nominal;
-            $infoOwner = $uangmasuk->user->name ?? 'User';
+            // LOG: Catat sebelum dihapus
+            ActivityLog::create([
+                'user_id'     => Auth::id(),
+                'activity'    => 'Hapus',
+                'description' => "menghapus pemasukan senilai Rp " . number_format($uangmasuk->nominal, 0, ',', '.'),
+                'ip_address'  => $request->ip(),
+            ]);
 
             $uangmasuk->delete();
 
-            // LOG AKTIVITAS
-            ActivityLog::create([
-                'user_id'     => Auth::id(),
-                'action'      => 'Hapus',
-                'description' => "Admin menghapus pemasukan milik " . $infoOwner . " sebesar Rp " . number_format($infoNominal),
-                'ip_address'  => $request->ip() ?? null,
-            ]);
-
             return redirect()->route('uangmasuk.index')->with('success', 'Data berhasil dihapus!');
         });
-    }
-
-    public function show($id)
-    {
-        $uangmasuk = UangMasuk::with(['saldo', 'user'])->findOrFail($id);
-        
-        if (Auth::user()->role != 'admin' && $uangmasuk->id_user != Auth::id()) {
-            abort(403);
-        }
-
-        return view('uangmasuk.show', compact('uangmasuk'));
     }
 }

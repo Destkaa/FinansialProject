@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UangKeluar extends Model
 {
@@ -15,18 +15,28 @@ class UangKeluar extends Model
         'nominal', 
         'keterangan', 
         'tanggal_uang_keluar', 
-        'created_at' // Penting: agar jam bisa diisi manual
+        'created_at' 
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
+        'tanggal_uang_keluar' => 'date',
     ];
 
-    public function saldo() {
+    /**
+     * Relasi ke Saldo (E-Wallet/Bank)
+     */
+    public function saldo(): BelongsTo
+    {
         return $this->belongsTo(Saldo::class, 'id_saldo');
     }
 
-    public function user() {
-        return $this->hasOneThrough(User::class, Saldo::class, 'id', 'id', 'id_saldo', 'id_user');
+    /**
+     * Relasi ke User (Pemilik Transaksi)
+     */
+    public function user(): BelongsTo
+    {
+        // Langsung hubungkan id_user ke model User
+        return $this->belongsTo(User::class, 'id_user');
     }
 }

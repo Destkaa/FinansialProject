@@ -6,77 +6,78 @@ use App\Models\Saldo;
 use App\Models\User;
 use App\Exports\SaldoExport;
 use Maatwebsite\Excel\Facades\Excel;
-
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // Tambahkan ini
+
 class SaldoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-        public function export_excel()
+    public function export_excel()
     {
         return Excel::download(new SaldoExport, 'data-saldo.xlsx');
     }
     
     public function index()
     {
-        $saldo = Saldo::all();
+        // 1. Cek siapa yang login
+        $user = Auth::user();
+
+        if ($user->role == 'admin') {
+            // Admin melihat semua saldo di sistem
+            $saldo = Saldo::with('user')->latest()->get();
+        } else {
+            // User biasa HANYA melihat saldo miliknya sendiri
+            $saldo = Saldo::where('id_user', $user->id)
+                ->latest()
+                ->get();
+        }
+
         return view('saldo.index', compact('saldo'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('saldo.create');
-
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-   public function store(Request $request)
-{
-    // Validasi data (opsional tapi disarankan)
-    $request->validate([
-        'nama_e_wallet' => 'required',
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_e_wallet' => 'required',
+        ]);
 
-    // Simpan data saldo
-    \App\Models\Saldo::create([
-        'id_user'       => auth()->id(), // TAMBAHKAN BARIS INI
-        'nama_e_wallet' => $request->nama_e_wallet,
-        'total'         => 0, // Sesuai log error kamu tadi nilainya 0
-    ]);
+        Saldo::create([
+            'id_user'       => auth()->id(),
+            'nama_e_wallet' => $request->nama_e_wallet,
+            'total'         => 0,
+        ]);
 
-    return redirect()->route('saldo.index')->with('success', 'Saldo berhasil ditambahkan!');
-}
+        return redirect()->route('saldo.index')->with('success', 'Saldo berhasil ditambahkan!');
+    }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        $saldo = \App\Models\Saldo::findOrFail($id);
+        $saldo = Saldo::findOrFail($id);
+
+        // Security Check: User biasa tidak boleh intip saldo orang lain lewat URL
+        if (Auth::user()->role != 'admin' && $saldo->id_user != Auth::id()) {
+            abort(403);
+        }
 
         return view('saldo.show', compact('saldo'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-  public function edit(string $id)
+    public function edit(string $id)
     {
-    $saldo = Saldo::findOrFail($id);
+        $saldo = Saldo::findOrFail($id);
 
-    return view('saldo.edit', compact('saldo'));
+        // Security Check
+        if (Auth::user()->role != 'admin' && $saldo->id_user != Auth::id()) {
+            abort(403);
+        }
 
+        return view('saldo.edit', compact('saldo'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         $request->validate([
@@ -84,28 +85,31 @@ class SaldoController extends Controller
             'total'         => 'required|numeric',
         ]);
 
-        // 2. Cari data berdasarkan ID
         $saldo = Saldo::findOrFail($id);
 
-        // 3. Update data
-        $saldo->nama_e_wallet = $request->nama_e_wallet;
-        $saldo->total         = $request->total;
-        
-        // 4. Simpan ke database
-        $saldo->save();
+        // Security Check
+        if (Auth::user()->role != 'admin' && $saldo->id_user != Auth::id()) {
+            abort(403);
+        }
 
-        // 5. Redirect kembali ke halaman index dengan pesan sukses
+        $saldo->update([
+            'nama_e_wallet' => $request->nama_e_wallet,
+            'total'         => $request->total,
+        ]);
+
         return redirect()->route('saldo.index')->with('success', 'Data berhasil diperbarui!');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $saldo = Saldo::findOrFail($id);
-    $saldo->delete();
 
-    return redirect()->route('saldo.index')->with('success', 'Data berhasil dihapus!');
+        // Security Check
+        if (Auth::user()->role != 'admin' && $saldo->id_user != Auth::id()) {
+            abort(403);
+        }
+
+        $saldo->delete();
+        return redirect()->route('saldo.index')->with('success', 'Data berhasil dihapus!');
     }
 }

@@ -1,131 +1,207 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-5" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+<style>
+    /* Custom Styles untuk Profile Page */
+    .profile-card {
+        border: none;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        background: #fff;
+    }
+
+    .profile-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(105, 108, 255, 0.1) !important;
+    }
+
+    .avatar-wrapper {
+        width: 130px;
+        height: 130px;
+        margin: 0 auto 1.5rem;
+        position: relative;
+        padding: 5px;
+        border: 2px dashed #696cff; /* Border putus-putus ungu */
+        border-radius: 50%;
+    }
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid #fff;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .initial-avatar {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(135deg, #696cff 0%, #303282 100%);
+        border: 4px solid #fff;
+    }
+
+    .btn-update-photo {
+        background-color: #696cff;
+        border-color: #696cff;
+        color: #fff;
+        transition: all 0.2s;
+    }
+
+    .btn-update-photo:hover {
+        background-color: #5f61e6;
+        box-shadow: 0 4px 8px rgba(105, 108, 255, 0.4);
+    }
+
+    .form-label-custom {
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #a1acb8;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control:focus {
+        border-color: #696cff;
+        box-shadow: 0 0 0 0.2rem rgba(105, 108, 255, 0.1);
+    }
+
+    .badge-role {
+        background-color: rgba(105, 108, 255, 0.1);
+        color: #696cff;
+        font-weight: 600;
+        padding: 0.5rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+    }
+</style>
+
+<div class="container-xxl flex-grow-1 container-p-y">
     <div class="row">
-        <div class="col-lg-4 mb-4">
-            <div class="card" style="border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
-                <div class="card-body text-center" style="padding: 2rem;">
-                    <div style="width: 120px; height: 120px; margin: 0 auto 1.5rem; position: relative;">
+        <div class="col-xl-4 col-lg-5 col-md-5 mb-4">
+            <div class="card profile-card shadow-sm">
+                <div class="card-body text-center pt-5">
+                    <div class="avatar-wrapper">
                         @if($user->avatar)
-                            {{-- Tambahkan ?t=time() untuk memaksa browser refresh gambar baru --}}
                             <img src="{{ asset('storage/avatars/' . $user->avatar) }}?t={{ time() }}" 
-                                 id="avatar-preview" 
-                                 style="width: 120px !important; height: 120px !important; border-radius: 50% !important; object-fit: cover !important; display: block; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                                 id="avatar-preview" class="avatar-img">
                         @else
-                            <div id="initial-preview" 
-                                 style="width: 120px !important; height: 120px !important; border-radius: 50% !important; background-color: {{ $user->role == 'admin' ? '#dc3545' : '#007bff' }}; color: white; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                            <div id="initial-preview" class="initial-avatar">
                                 {{ strtoupper(substr($user->name, 0, 1)) }}
                             </div>
-                            <img id="avatar-preview" style="width: 120px !important; height: 120px !important; border-radius: 50% !important; object-fit: cover !important; display: none; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                            <img id="avatar-preview" class="avatar-img" style="display: none;">
                         @endif
                     </div>
 
-                    <h5 style="font-weight: 700; margin-bottom: 0.25rem; color: #333;">{{ $user->name }}</h5>
-                    <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">{{ $user->email }}</p>
-                    <span style="padding: 0.4rem 1rem; border-radius: 50px; background: #f8f9fa; color: #333; font-size: 0.75rem; font-weight: 600; border: 1px solid #dee2e6; display: inline-block; margin-bottom: 1.5rem;">
-                        {{ strtoupper($user->role) }}
-                    </span>
+                    <h4 class="mb-1 fw-bold">{{ $user->name }}</h4>
+                    <p class="text-muted mb-3">{{ $user->email }}</p>
+                    <div class="mb-4">
+                        <span class="badge-role">{{ strtoupper($user->role) }}</span>
+                    </div>
 
-                    <hr style="opacity: 0.1;">
-
-                    {{-- Fitur Kembali ke Dashboard --}}
-                    <div class="d-grid mt-3">
-                        <a href="{{ route('home') }}" class="btn btn-outline-secondary" style="border-radius: 10px; font-weight: 600; padding: 0.6rem;">
-                             Kembali ke Dashboard
-                        </a>
+                    <div class="d-flex justify-content-center gap-2 border-top pt-4">
+                         <a href="{{ route('home') }}" class="btn btn-outline-secondary w-100">
+                            <i class="bx bx-left-arrow-alt me-1"></i> Dashboard
+                         </a>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-lg-8">
+        <div class="col-xl-8 col-lg-7 col-md-7">
             @if(session('success'))
-                <div class="alert alert-success" style="border: none; border-radius: 10px; background-color: #d4edda; color: #155724; padding: 1rem; margin-bottom: 1.5rem;">
-                    {{ session('success') }}
+                <div class="alert alert-primary d-flex align-items-center" role="alert">
+                    <i class="bx bx-check-circle me-2"></i>
+                    <div>{{ session('success') }}</div>
                 </div>
             @endif
 
-            {{-- Form Foto Profil --}}
-            <div class="card" style="border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
-                <div class="card-header" style="background: white; border-bottom: 1px solid #f0f0f0; padding: 1.25rem 1.5rem;">
-                    <h6 style="margin: 0; font-weight: 700; color: #333;">Foto Profil</h6>
+            <div class="card profile-card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center border-bottom bg-transparent py-3">
+                    <h5 class="m-0 fw-bold"><i class="bx bx-image-alt me-2"></i>Foto Profil</h5>
                 </div>
-                <div class="card-body" style="padding: 1.5rem;">
+                <div class="card-body pt-4">
                     <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
-                        {{-- Penting: Hidden input agar data lain tetap terkirim --}}
                         <input type="hidden" name="name" value="{{ $user->name }}">
                         <input type="hidden" name="email" value="{{ $user->email }}">
 
-                        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                            <div style="flex-grow: 1;">
+                        <div class="row align-items-center">
+                            <div class="col-sm-8 mb-3 mb-sm-0">
                                 <input type="file" name="avatar" id="avatar-input" class="form-control" accept="image/*" required>
-                                <small style="color: #6c757d; display: block; margin-top: 5px;">Maksimal 2MB (JPG, PNG, JPEG).</small>
+                                <div class="form-text mt-2 text-muted">Format: JPG, PNG, JPEG. Max 2MB.</div>
                             </div>
-                            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; border-radius: 8px; font-weight: 600;">Update Foto</button>
+                            <div class="col-sm-4 text-sm-end">
+                                <button type="submit" class="btn btn-update-photo px-4">Upload Baru</button>
+                            </div>
                         </div>
                     </form>
 
                     @if($user->avatar)
-                        <div style="margin-top: 1rem;">
+                        <div class="mt-3">
                             <button type="button" 
                                     onclick="if(confirm('Hapus foto profil?')) document.getElementById('delete-avatar-form').submit();"
-                                    style="background: none; border: none; color: #dc3545; font-size: 0.85rem; padding: 0; cursor: pointer; font-weight: 600;">
-                                Hapus Foto Saat Ini
+                                    class="btn btn-link text-danger p-0 fw-bold small text-decoration-none">
+                                <i class="bx bx-trash me-1"></i> Hapus Foto Saat Ini
                             </button>
                         </div>
                     @endif
                 </div>
             </div>
 
-            {{-- Form Informasi Akun --}}
-            <div class="card" style="border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
-                <div class="card-header" style="background: white; border-bottom: 1px solid #f0f0f0; padding: 1.25rem 1.5rem;">
-                    <h6 style="margin: 0; font-weight: 700; color: #333;">Informasi Akun</h6>
+            <div class="card profile-card shadow-sm mb-4">
+                <div class="card-header border-bottom bg-transparent py-3">
+                    <h5 class="m-0 fw-bold"><i class="bx bx-user-circle me-2"></i>Informasi Akun</h5>
                 </div>
-                <div class="card-body" style="padding: 1.5rem;">
+                <div class="card-body pt-4">
                     <form action="{{ route('profile.update') }}" method="POST">
                         @csrf
                         @method('PUT')
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #6c757d; margin-bottom: 5px;">NAMA LENGKAP</label>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label-custom">Nama Lengkap</label>
                                 <input type="text" name="name" class="form-control" value="{{ old('name', $user->name) }}" required>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #6c757d; margin-bottom: 5px;">EMAIL</label>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label-custom">Alamat Email</label>
                                 <input type="email" name="email" class="form-control" value="{{ old('email', $user->email) }}" required>
                             </div>
                         </div>
-                        <div style="text-align: right;">
-                            <button type="submit" class="btn btn-dark" style="padding: 0.6rem 2rem; border-radius: 8px; font-weight: 600;">Simpan Perubahan</button>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-4">Simpan Perubahan</button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            {{-- Form Keamanan --}}
-            <div class="card" style="border: none; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <div class="card-header" style="background: white; border-bottom: 1px solid #f0f0f0; padding: 1.25rem 1.5rem;">
-                    <h6 style="margin: 0; font-weight: 700; color: #333;">Keamanan</h6>
+            <div class="card profile-card shadow-sm border-label-danger">
+                <div class="card-header border-bottom bg-transparent py-3">
+                    <h5 class="m-0 fw-bold text-danger"><i class="bx bx-shield-quarter me-2"></i>Keamanan</h5>
                 </div>
-                <div class="card-body" style="padding: 1.5rem;">
+                <div class="card-body pt-4">
                     <form action="{{ route('profile.password') }}" method="POST">
                         @csrf
                         @method('PUT')
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #6c757d; margin-bottom: 5px;">PASSWORD BARU</label>
-                                <input type="password" name="password" class="form-control" placeholder="Minimal 8 karakter">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label-custom">Password Baru</label>
+                                <input type="password" name="password" class="form-control" placeholder="••••••••">
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #6c757d; margin-bottom: 5px;">KONFIRMASI PASSWORD</label>
-                                <input type="password" name="password_confirmation" class="form-control" placeholder="Ulangi password">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label-custom">Konfirmasi Password</label>
+                                <input type="password" name="password_confirmation" class="form-control" placeholder="••••••••">
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1.5rem; border-radius: 8px; font-weight: 600;">Update Password</button>
+                        <button type="submit" class="btn btn-danger px-4">Ganti Password</button>
                     </form>
                 </div>
             </div>

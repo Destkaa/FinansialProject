@@ -4,7 +4,64 @@
       <i class="bx bx-menu bx-sm"></i>
     </a>
   </div>
+    <style>
+    /* Styling Container Dropdown */
+    .dropdown-menu {
+        border: none;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        border-radius: 12px;
+        padding: 0.75rem;
+        min-width: 230px;
+    }
 
+    /* Efek Hover pada Item Dropdown */
+    .dropdown-item {
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        transition: all 0.2s ease;
+        color: #566a7f;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(105, 108, 255, 0.08); /* Warna ungu khas Sneat */
+        color: #696cff !important;
+        transform: translateX(5px); /* Geser sedikit ke kanan saat hover */
+    }
+
+    /* Icon di dalam Dropdown */
+    .dropdown-item i {
+        font-size: 1.1rem;
+        vertical-align: middle;
+        transition: transform 0.2s ease;
+    }
+
+    .dropdown-item:hover i {
+        transform: scale(1.1);
+    }
+
+    /* Divider yang lebih tipis dan bersih */
+    .dropdown-divider {
+        margin: 0.5rem 0;
+        border-color: #f0f2f4;
+    }
+
+    /* Styling Header Profil dalam Dropdown */
+    .dropdown-user-header {
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .dropdown-user-header .fw-semibold {
+        color: #566a7f;
+        font-size: 0.95rem;
+    }
+
+    /* Styling Avatar di Navbar agar lebih rapi */
+    .avatar img {
+        border: 2px solid #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
   <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
     <div class="navbar-nav align-items-center">
       <div class="nav-item d-flex align-items-center">

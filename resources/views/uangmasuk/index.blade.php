@@ -43,8 +43,8 @@
                                 <i class="bx bx-folder-plus me-1"></i> Tambah Data 
                             </a>
                             <a href="{{ route('export.uangmasuk') }}" class="btn btn-outline-success my-4">
-                            <i class="bx bx-spreadsheet me-1"></i> Export Excel
-                        </a>
+                                <i class="bx bx-spreadsheet me-1"></i> Export Excel
+                            </a>
                         </div>
 
                         <div class="card">
@@ -53,6 +53,8 @@
                                 <table class="table table-hover">
                                     <thead>
                                         <tr>
+                                            <th>User / Penginput</th>
+                                            <th>Role</th>
                                             <th>Nominal</th>
                                             <th>Keterangan</th>
                                             <th>Tanggal</th>
@@ -63,6 +65,21 @@
                                     <tbody class="table-border-bottom-0">
                                         @forelse ( $uangmasuk as $data )
                                         <tr>
+                                            <td>
+                                                <span class="fw-bold text-dark">{{ $data->user->name ?? 'User Tidak Dikenal' }}</span>
+                                            </td>
+
+                                            <td>
+                                                @php
+                                                    $role = $data->user->role ?? 'user';
+                                                @endphp
+                                                @if($role == 'admin')
+                                                    <span class="badge bg-label-danger text-uppercase">Admin</span>
+                                                @else
+                                                    <span class="badge bg-label-info text-uppercase">User</span>
+                                                @endif
+                                            </td>
+
                                             <td><strong class="text-success">Rp {{ number_format($data->nominal, 0, ',', '.') }}</strong></td>
                                             <td>{{ $data->keterangan }}</td>
                                             <td>{{ \Carbon\Carbon::parse($data->tanggal_uang_masuk)->format('d-m-Y') }}</td>
@@ -100,7 +117,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="5" class="text-center">Belum ada data uang masuk.</td>
+                                            <td colspan="7" class="text-center">Belum ada data uang masuk.</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
