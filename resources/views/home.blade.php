@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/core.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/css/theme-default.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/demo.css') }}" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="{{ asset('assets/vendor/js/helpers.js') }}"></script>
     <script src="{{ asset('assets/js/config.js') }}"></script>
 
@@ -162,6 +164,18 @@
                                 </div>
                             </div>
 
+                            <div class="col-12 mb-4">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">Analisis Alur Kas</h5>
+                                        <small class="text-muted">7 Hari Terakhir</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="financialChart" style="min-height: 350px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
@@ -260,6 +274,7 @@
     <script src="{{ asset('assets/js/main.js') }}"></script>
 
     <script>
+        // Clock Function
         function updateClock() {
             const now = new Date();
             const h = String(now.getHours()).padStart(2, '0');
@@ -271,6 +286,49 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        // Chart Initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            var options = {
+                series: [{
+                    name: 'Pemasukan',
+                    data: [31, 40, 28, 51, 42, 109, 100] // Dummy: Hubungkan dengan data Laravel nantinya
+                }, {
+                    name: 'Pengeluaran',
+                    data: [11, 32, 45, 32, 34, 52, 41] // Dummy: Hubungkan dengan data Laravel nantinya
+                }],
+                chart: {
+                    height: 350,
+                    type: 'area',
+                    toolbar: { show: false },
+                    fontFamily: 'Public Sans'
+                },
+                colors: ['#71dd37', '#ff3e1d'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 2 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.3,
+                        opacityTo: 0.1,
+                        stops: [0, 90, 100]
+                    }
+                },
+                xaxis: {
+                    categories: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"],
+                    labels: { style: { colors: '#a1acb8' } }
+                },
+                yaxis: {
+                    labels: { style: { colors: '#a1acb8' } }
+                },
+                grid: { borderColor: '#eceef1' },
+                tooltip: { x: { format: 'dd/MM/yy HH:mm' } }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#financialChart"), options);
+            chart.render();
+        });
     </script>
 </body>
 </html>
